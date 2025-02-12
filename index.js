@@ -5,6 +5,7 @@ const fs = require('fs');
 // تنظیمات
 const BOT_TOKEN = '7109843159:AAELKwrpvg1RhD5ZEYKWCS0u_ddeTOU2bEI';
 const CHANNEL_ID = '-1002408872436';
+const ADMIN_ID = '5388685693'; // شناسه تلگرام ادمین
 const API_URL = 'https://one-api.ir/price/?token=645888:669bf7ffa1c57&action=tgju';
 const STORAGE_FILE = 'lastPrice.json'; // فایل ذخیره آخرین قیمت
 
@@ -13,16 +14,22 @@ const bot = new Telegraf(BOT_TOKEN);
 
 // تابع ذخیره قیمت در فایل
 function savePrice(price) {
-  fs.writeFileSync(STORAGE_FILE, JSON.stringify({ lastPrice: price }));
+  try {
+    fs.writeFileSync(STORAGE_FILE, JSON.stringify({ lastPrice: price }, null, 2));
+  } catch (error) {
+    console.error('خطا در ذخیره قیمت:', error);
+  }
 }
 
 // تابع دریافت قیمت از فایل
 function getLastPrice() {
   try {
-    const data = fs.readFileSync(STORAGE_FILE);
-    return JSON.parse(data).lastPrice;
+    if (!fs.existsSync(STORAGE_FILE)) return null;
+    const data = fs.readFileSync(STORAGE_FILE, 'utf8');
+    return JSON.parse(data).lastPrice || null;
   } catch (error) {
-    return null; // اگر فایل وجود نداشت
+    console.error('خطا در خواندن فایل ذخیره:', error);
+    return null;
   }
 }
 
@@ -30,25 +37,39 @@ function getLastPrice() {
 async function fetchAndSendPrice() {
   try {
     const response = await axios.get(API_URL);
+    if (!response.data || !response.data.result || !response.data.result.currencies || !response.data.result.currencies.dollar) {
+      console.error('ساختار داده‌های API نامعتبر است:', response.data);
+      return;
+    }
+
     const currentPrice = response.data.result.currencies.dollar.p;
     const lastPrice = getLastPrice();
 
+    if (!fs.existsSync(STORAGE_FILE)) {
+      console.log('اولین اجرا: قیمت اولیه ذخیره می‌شود');
+      savePrice(currentPrice);
+      return;
+    }
+
     // اگر قیمت تغییر کرده باشد
     if (currentPrice !== lastPrice) {
-      // ارسال پیام
       await bot.telegram.sendMessage(
         CHANNEL_ID,
-        `🔄 تغییر قیمت!\n💰 قیمت جدید دلار: ${currentPrice} تومان\n📉 قیمت قبلی: ${lastPrice || 'نامعلوم'}`
+        `🔄 تغییر قیمت!
+💰 قیمت جدید دلار: ${currentPrice} تومان
+📉 قیمت قبلی: ${lastPrice || 'نامعلوم'}`
       );
-      
-      // ذخیره قیمت جدید
       savePrice(currentPrice);
       console.log('پیام ارسال شد. قیمت جدید:', currentPrice);
     } else {
       console.log('تغییری در قیمت وجود ندارد.');
     }
   } catch (error) {
-    console.error('خطا:', error.message);
+    console.error('خطا در دریافت قیمت:', error);
+    if (error.response) {
+      console.error('پاسخ سرور:', error.response.data);
+    }
+    await bot.telegram.sendMessage(ADMIN_ID, `❌ خطا در دریافت قیمت:\n${error.message}`);
   }
 }
 
