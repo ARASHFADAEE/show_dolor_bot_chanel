@@ -56,7 +56,7 @@ async function fetchAndSendPrice() {
       await bot.telegram.sendMessage(
         CHANNEL_ID,
         `🔄 تغییر قیمت!
-💰 قیمت جدید دلار: ${currentPrice} تومان
+💰 قیمت جدید دلار: ${currentPrice} ریال
 📉 قیمت قبلی: ${lastPrice || 'نامعلوم'}`
       );
       savePrice(currentPrice);
