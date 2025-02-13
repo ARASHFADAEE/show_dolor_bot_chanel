@@ -18,6 +18,7 @@
     "form-data": "^4.0.1",
     "mime-db": "^1.52.0",
     "mime-types": "^2.1.35",
+    "moment-jalaali": "^0.10.4",
     "proxy-from-env": "^1.1.0",
     "telegraf": "^4.16.3"
   }

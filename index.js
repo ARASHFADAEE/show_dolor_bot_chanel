@@ -1,8 +1,9 @@
 const { Telegraf } = require('telegraf');
 const axios = require('axios');
 const fs = require('fs');
+const moment = require('moment-jalaali'); // اضافه کردن moment-jalaali
 
-// تنظیمات
+// 📌 تنظیمات
 const BOT_TOKEN = '7109843159:AAELKwrpvg1RhD5ZEYKWCS0u_ddeTOU2bEI';
 const CHANNEL_ID = '-1002408872436';
 const API_URL = 'https://one-api.ir/price/?token=645888:669bf7ffa1c57&action=tgju';
@@ -10,12 +11,12 @@ const STORAGE_FILE = 'lastPrice.json';
 
 const bot = new Telegraf(BOT_TOKEN);
 
-// ذخیره قیمت در فایل
+// 📌 ذخیره قیمت در فایل
 function savePrice(price) {
     fs.writeFileSync(STORAGE_FILE, JSON.stringify({ lastPrice: price }));
 }
 
-// دریافت آخرین قیمت از فایل
+// 📌 دریافت آخرین قیمت از فایل
 function getLastPrice() {
     if (!fs.existsSync(STORAGE_FILE)) {
         console.warn('⚠️ فایل ذخیره قیمت وجود ندارد، مقدار پیش‌فرض تنظیم شد.');
@@ -56,10 +57,16 @@ function getLastPrice() {
     }
 }
 
-// دریافت و ارسال قیمت جدید
+// 📌 دریافت و ارسال قیمت جدید
 async function fetchAndSendPrice() {
     try {
         const response = await axios.get(API_URL);
+
+        if (!response.data || !response.data.result || !response.data.result.currencies || !response.data.result.currencies.dollar) {
+            console.warn('❌ خطا: ساختار پاسخ API نامعتبر است!');
+            return;
+        }
+
         let currentPrice = response.data.result.currencies.dollar.p;
 
         if (!currentPrice) {
@@ -70,10 +77,15 @@ async function fetchAndSendPrice() {
         currentPrice = Number(currentPrice.replace(/,/g, ''));
         const lastPrice = getLastPrice();
 
+        // 📌 دریافت تاریخ و ساعت شمسی
+        moment.loadPersian({ dialect: 'persian-modern' }); // فعال کردن زبان فارسی
+        const currentDateTime = moment().format('jYYYY/jMM/jDD HH:mm:ss'); // فرمت: 1402/11/24 14:35:10
+
         if (currentPrice !== lastPrice) {
             await bot.telegram.sendMessage(
                 CHANNEL_ID,
                 `🔄 تغییر قیمت!
+📅 تاریخ و ساعت: ${currentDateTime}
 💰 قیمت جدید دلار: ${currentPrice.toLocaleString()} ریال
 📉 قیمت قبلی: ${lastPrice.toLocaleString()} ریال`
             );
@@ -87,20 +99,20 @@ async function fetchAndSendPrice() {
     }
 }
 
-// مدیریت اولین اجرا
+// 📌 مدیریت اولین اجرا
 if (!fs.existsSync(STORAGE_FILE)) {
     console.log('🔰 اولین اجرا: قیمت اولیه ذخیره می‌شود');
     fetchAndSendPrice();
 }
 
-// بررسی قیمت هر ۳ دقیقه
+// 📌 بررسی قیمت هر ۳ دقیقه
 setInterval(fetchAndSendPrice, 180000);
 
-// راه‌اندازی بات
+// 📌 راه‌اندازی بات
 bot.launch().then(() => {
     console.log('🚀 بات راه‌اندازی شد!');
 });
 
-// مدیریت خروج ایمن
+// 📌 مدیریت خروج ایمن
 process.once('SIGINT', () => bot.stop('SIGINT'));
 process.once('SIGTERM', () => bot.stop('SIGTERM'));
