@@ -5,7 +5,7 @@ const fs = require('fs');
 const moment = require('moment-jalaali');
 
 // 📌 تنظیمات
-const BOT_TOKEN = '7109843159:AAELKwrpvg1RhD5ZEYKWCS0u_ddeTOU2bEI';
+const BOT_TOKEN = '7722552369:AAEWrnT4qLOYlck_iO76vtLHiOmIU5rfXxs';
 const CHANNEL_ID = '-1002408872436';
 const URL = 'https://www.tgju.org/profile/price_dollar_rl'; // آدرس وب‌سایت برای اسکرپینگ
 const STORAGE_FILE = 'lastPrice.json';
