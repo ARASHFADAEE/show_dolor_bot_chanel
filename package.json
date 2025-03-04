@@ -12,6 +12,7 @@
   "dependencies": {
     "asynckit": "^0.4.0",
     "axios": "^1.7.9",
+    "cheerio": "^1.0.0",
     "combined-stream": "^1.0.8",
     "delayed-stream": "^1.0.0",
     "follow-redirects": "^1.15.9",

@@ -1,15 +1,42 @@
 const { Telegraf } = require('telegraf');
 const axios = require('axios');
+const cheerio = require('cheerio');
 const fs = require('fs');
-const moment = require('moment-jalaali'); // اضافه کردن moment-jalaali
+const moment = require('moment-jalaali');
 
 // 📌 تنظیمات
 const BOT_TOKEN = '7109843159:AAELKwrpvg1RhD5ZEYKWCS0u_ddeTOU2bEI';
 const CHANNEL_ID = '-1002408872436';
-const API_URL = 'https://one-api.ir/price/?token=645888:669bf7ffa1c57&action=tgju';
+const URL = 'https://www.tgju.org/profile/price_dollar_rl'; // آدرس وب‌سایت برای اسکرپینگ
 const STORAGE_FILE = 'lastPrice.json';
 
 const bot = new Telegraf(BOT_TOKEN);
+
+// 📌 تابع اسکرپینگ برای دریافت نرخ فعلی
+async function scrapeCurrentRate() {
+    try {
+        // ارسال درخواست به صفحه
+        const { data: html } = await axios.get(URL);
+
+        // بارگذاری HTML در cheerio
+        const $ = cheerio.load(html);
+
+        // پیدا کردن مقدار "نرخ فعلی"
+        const currentRate = $('tbody.table-padding-lg tr')
+            .filter((i, el) => {
+                return $(el).find('td.text-right').text().trim() === 'نرخ فعلی';
+            })
+            .find('td.text-left')
+            .text()
+            .replace(/,/g, '') // حذف کاما
+            .trim();
+
+        return Number(currentRate); // تبدیل به عدد و بازگشت
+    } catch (error) {
+        console.error('❌ خطا در اسکرپینگ:', error.message);
+        return null; // در صورت خطا، مقدار null بازمی‌گردد
+    }
+}
 
 // 📌 ذخیره قیمت در فایل
 function savePrice(price) {
@@ -60,21 +87,13 @@ function getLastPrice() {
 // 📌 دریافت و ارسال قیمت جدید
 async function fetchAndSendPrice() {
     try {
-        const response = await axios.get(API_URL);
-
-        if (!response.data || !response.data.result || !response.data.result.currencies || !response.data.result.currencies.dollar) {
-            console.warn('❌ خطا: ساختار پاسخ API نامعتبر است!');
-            return;
-        }
-
-        let currentPrice = response.data.result.currencies.dollar.p;
+        const currentPrice = await scrapeCurrentRate(); // دریافت نرخ از طریق اسکرپینگ
 
         if (!currentPrice) {
             console.warn('❌ دریافت قیمت جدید ناموفق بود!');
             return;
         }
 
-        currentPrice = Number(currentPrice.replace(/,/g, ''));
         const lastPrice = getLastPrice();
 
         // 📌 دریافت تاریخ و ساعت شمسی
