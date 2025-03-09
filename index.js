@@ -7,7 +7,7 @@ const fs = require('fs');
 const moment = require('moment-jalaali');
 
 // 📌 تنظیمات
-const BOT_TOKEN = process.env.BOT_TOKEN || '7722552369:AAEWrnT4qLOYlck_iO76vtLHiOmIU5rfXxs'; // توکن ربات تلگرام
+const BOT_TOKEN = process.env.BOT_TOKEN || '7722552369:AAGO4IGyXDMX6ztBB5qSCAjuMmR215rfyr8'; // توکن ربات تلگرام
 const CHANNEL_ID = process.env.CHANNEL_ID || '-1002408872436'; // آیدی کانال تلگرامی
 const URL = 'https://www.tgju.org'; // آدرس وب‌سایت برای اسکرپینگ
 const STORAGE_FILE = 'lastPrice.json'; // فایل ذخیره آخرین قیمت
