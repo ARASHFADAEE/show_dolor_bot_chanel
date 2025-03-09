@@ -1,3 +1,5 @@
+
+// 📦 کتابخانه‌ها
 const { Telegraf } = require('telegraf');
 const axios = require('axios');
 const cheerio = require('cheerio');
@@ -5,10 +7,10 @@ const fs = require('fs');
 const moment = require('moment-jalaali');
 
 // 📌 تنظیمات
-const BOT_TOKEN = '7722552369:AAEWrnT4qLOYlck_iO76vtLHiOmIU5rfXxs';
-const CHANNEL_ID = '-1002408872436';
-const URL = 'https://www.tgju.org/profile/price_dollar_rl'; // آدرس وب‌سایت برای اسکرپینگ
-const STORAGE_FILE = 'lastPrice.json';
+const BOT_TOKEN = process.env.BOT_TOKEN || '7722552369:AAEWrnT4qLOYlck_iO76vtLHiOmIU5rfXxs'; // توکن ربات تلگرام
+const CHANNEL_ID = process.env.CHANNEL_ID || '-1002408872436'; // آیدی کانال تلگرامی
+const URL = 'https://www.tgju.org'; // آدرس وب‌سایت برای اسکرپینگ
+const STORAGE_FILE = 'lastPrice.json'; // فایل ذخیره آخرین قیمت
 
 const bot = new Telegraf(BOT_TOKEN);
 
@@ -21,17 +23,14 @@ async function scrapeCurrentRate() {
         // بارگذاری HTML در cheerio
         const $ = cheerio.load(html);
 
-        // پیدا کردن مقدار "نرخ فعلی"
-        const currentRate = $('tbody.table-padding-lg tr')
-            .filter((i, el) => {
-                return $(el).find('td.text-right').text().trim() === 'نرخ فعلی';
-            })
-            .find('td.text-left')
-            .text()
-            .replace(/,/g, '') // حذف کاما
-            .trim();
+        // پیدا کردن مقدار قیمت از عنصر info-price
+        const currentRate = $('#l-price_dollar_rl .info-price')
+            .text() // دریافت متن داخل عنصر
+            .replace(/,/g, '') // حذف کاما از اعداد
+            .trim(); // حذف فاصله‌های اضافی
 
-        return Number(currentRate); // تبدیل به عدد و بازگشت
+        // تبدیل مقدار به عدد و بازگشت
+        return Number(currentRate);
     } catch (error) {
         console.error('❌ خطا در اسکرپینگ:', error.message);
         return null; // در صورت خطا، مقدار null بازمی‌گردد
@@ -47,39 +46,16 @@ function savePrice(price) {
 function getLastPrice() {
     if (!fs.existsSync(STORAGE_FILE)) {
         console.warn('⚠️ فایل ذخیره قیمت وجود ندارد، مقدار پیش‌فرض تنظیم شد.');
-        savePrice("0");
+        savePrice(0);
         return 0;
     }
 
     try {
-        const data = fs.readFileSync(STORAGE_FILE, 'utf8').trim();
-        if (!data || data === '{}') {
-            console.warn('⚠️ فایل ذخیره قیمت خالی است، مقدار پیش‌فرض تنظیم شد.');
-            savePrice("0");
-            return 0;
-        }
-
-        const jsonData = JSON.parse(data);
-        let lastPrice = jsonData.lastPrice;
-
-        if (!lastPrice || typeof lastPrice !== "string") {
-            console.warn('⚠️ مقدار ذخیره‌شده نامعتبر است، مقدار پیش‌فرض تنظیم شد.');
-            savePrice("0");
-            return 0;
-        }
-
-        lastPrice = Number(lastPrice.replace(/,/g, ''));
-        
-        if (isNaN(lastPrice)) {
-            console.warn('⚠️ مقدار ذخیره‌شده نامعتبر است، مقدار پیش‌فرض تنظیم شد.');
-            savePrice("0");
-            return 0;
-        }
-
-        return lastPrice;
+        const data = JSON.parse(fs.readFileSync(STORAGE_FILE, 'utf8'));
+        return Number(data.lastPrice || 0);
     } catch (error) {
         console.error('❌ خطا در خواندن فایل ذخیره قیمت:', error.message);
-        savePrice("0");
+        savePrice(0);
         return 0;
     }
 }
@@ -108,7 +84,7 @@ async function fetchAndSendPrice() {
 💰 قیمت جدید دلار: ${currentPrice.toLocaleString()} ریال
 📉 قیمت قبلی: ${lastPrice.toLocaleString()} ریال`
             );
-            savePrice(currentPrice.toString());
+            savePrice(currentPrice);
             console.log('✅ پیام ارسال شد. قیمت جدید:', currentPrice);
         } else {
             console.log('ℹ️ تغییری در قیمت وجود ندارد.');
@@ -125,9 +101,9 @@ if (!fs.existsSync(STORAGE_FILE)) {
 }
 
 // 📌 بررسی قیمت هر ۳ دقیقه
-setInterval(fetchAndSendPrice, 180000);
+setInterval(fetchAndSendPrice, 180000); // هر 3 دقیقه یک‌بار اجرا می‌شود
 
-// 📌 راه‌اندازی بات
+// 📌 راه‌اندازی ربات
 bot.launch().then(() => {
     console.log('🚀 بات راه‌اندازی شد!');
 });
